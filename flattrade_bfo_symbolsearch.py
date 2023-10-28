@@ -31,11 +31,10 @@ class FlattradeBFO:
 
     def __init__(
                 self,
-                master: Literal["idx", "stk", "all"]= "idx",
-                hard_refresh: bool= False
+                master: Literal["idx", "stk", "all"]= "idx"
                 ) -> None:
         self.master = master
-        self.hard_refresh = hard_refresh
+        #self.hard_refresh = hard_refresh
 
         self.path = os.path.dirname(__file__)
         self.current_date = datetime.now().date()
