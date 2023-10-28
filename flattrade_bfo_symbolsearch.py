@@ -3,7 +3,7 @@
     :: Description :: Search scrips in flattrade bfo symbolmaster.
     :: License :: MIT
     :: Author :: Tapan Hazarika
-    :: Created :: On Thursday October 28, 2023
+    :: Created :: On Sunday October 28, 2023
 """
 __author__ = "Tapan Hazarika"
 __license__ = "MIT"
