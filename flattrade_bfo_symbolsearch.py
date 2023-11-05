@@ -3,7 +3,7 @@
     :: Description :: Search scrips in flattrade bfo symbolmaster.
     :: License :: MIT
     :: Author :: Tapan Hazarika
-    :: Created :: On Sunday October 28, 2023
+    :: Created :: On Thursday October 28, 2023
 """
 __author__ = "Tapan Hazarika"
 __license__ = "MIT"
@@ -25,10 +25,6 @@ class FlattradeBFO:
     BFO_IDX = f"{BFO_BASE}/bfoidx"
     BFO_STK = f"{BFO_BASE}/bfostk"
 
-    SENSEX50 = "SENSEX50"
-    SENSEX = "SENSEX" 
-    BANKEX = "BANKEX"
-
     def __init__(
                 self,
                 master: Literal["idx", "stk", "all"]= "idx",
@@ -46,12 +42,12 @@ class FlattradeBFO:
 
     def is_latest(self, filepath: os.path) -> bool:
         file_time = datetime.fromtimestamp(os.path.getmtime(filepath)).date()
-        logging.info("File modify time :: {}".format(file_time))
+        logging.info("File modification date :: {}".format(file_time))
         return file_time == self.current_date
     
     def download_master(self, url: str) -> pl.DataFrame:
         try:
-            response = requests.get(url) 
+            response = requests.get(url, timeout=5, verify= False) 
             response.raise_for_status()
             if response.status_code == 200:
                 df = pl.from_records(data = response.json()["data"],
@@ -177,81 +173,53 @@ class FlattradeBFO:
         df = dataframe.lazy().drop(
                                 "symbol"
                                 ).with_columns(
-                                    pl.when(
-                                        (pl.col("instrument") == "FUTIDX") 
-                                        | 
-                                        (pl.col("instrument") == "OPTIDX")
-                                            ).then(
-                                                pl.when(
-                                                    pl.col("tradingsymbol").str.contains(
-                                                        self.SENSEX50
-                                                        )
-                                                    ).then(
-                                                        pl.lit(self.SENSEX50)
-                                                        ).otherwise(
-                                                            pl.when(
-                                                                pl.col("tradingsymbol").str.contains(
-                                                                        self.SENSEX
-                                                                        )
-                                                                    ).then(
-                                                                        pl.lit(self.SENSEX)
-                                                                        ).otherwise(
-                                                                            pl.when(
-                                                                                pl.col("tradingsymbol").str.contains(
-                                                                                        self.BANKEX
-                                                                                        )
-                                                                                    ).then(
-                                                                                        pl.lit(
-                                                                                            self.BANKEX
-                                                                                            )
-                                                                                        )
-                                                                                    )
-                                                                                )
-                                                                            ).otherwise(
-                                                                                pl.when(
-                                                                                    (pl.col("instrument")== "FUTSTK")
-                                                                                    |
-                                                                                    (pl.col("instrument")== "OPTSTK")
-                                                                                            ).then(
-                                                                                                pl.col("tradingsymbol").str.extract(
-                                                                                                        pattern= r'^(.*?)(\d)'
-                                                                                                        )
-                                                                                                    )
-                                                                                                ).alias(
-                                                                                                    "symbol"
-                                                                                                    )
-                                                                                                ).with_columns(
-                                                                                                    pl.when(
-                                                                                                        (pl.col("instrument")== "OPTSTK")
-                                                                                                        |
-                                                                                                        (pl.col("instrument")== "OPTIDX")
-                                                                                                                ).then(
-                                                                                                                    pl.col(
-                                                                                                                        "tradingsymbol"
-                                                                                                                        ).str.split(
-                                                                                                                            by= pl.col("symbol")
-                                                                                                                            ).list.get(1).str.extract(
-                                                                                                                                pattern= r'^.{5}(.*).{2}$'
-                                                                                                                                ).alias("strikeprice")
-                                                                                                                                )
-                                                                                                                            ).with_columns(
-                                                                                                                                pl.col(
-                                                                                                                                    "strikeprice"
-                                                                                                                                    ).fill_null(0)
-                                                                                                                                ).select(
-                                                                                                                                    [
-                                                                                                                                        "exchange",
-                                                                                                                                        "token",
-                                                                                                                                        "lotsize", 
-                                                                                                                                        "symbol",
-                                                                                                                                        "tradingsymbol",
-                                                                                                                                        "expiry",
-                                                                                                                                        "instrument",
-                                                                                                                                        "optiontype",
-                                                                                                                                        "strikeprice",
-                                                                                                                                        "strike"
-                                                                                                                                        ]
-                                                                                                                                    ).collect()
+                                pl.when(
+                                    pl.col("tradingsymbol").str.contains(
+                                        "SENSEX50"
+                                        )
+                                    ).then(
+                                        pl.lit("SENSEX50")
+                                        ).otherwise(
+                                            pl.col(
+                                                "tradingsymbol"
+                                                   ).str.extract(
+                                                            pattern= r'^(.*?)(\d)'
+                                                            )
+                                                        ).alias(
+                                                        "symbol"
+                                                    )
+                                                        ).with_columns(
+                                                                    pl.when(
+                                                                        (pl.col("instrument")== "OPTSTK")
+                                                                        |
+                                                                        (pl.col("instrument")== "OPTIDX")
+                                                                                ).then(
+                                                                                    pl.col(
+                                                                                        "tradingsymbol"
+                                                                                        ).str.split(
+                                                                                            by= pl.col("symbol")
+                                                                                            ).list.get(1).str.extract(
+                                                                                                pattern= r'^.{5}(.*).{2}$'
+                                                                                                ).alias("strikeprice")
+                                                                                                )
+                                                                                            ).with_columns(
+                                                                                                pl.col(
+                                                                                                    "strikeprice"
+                                                                                                    ).fill_null(0)
+                                                                                                ).select(
+                                                                                                        [
+                                                                                                            "exchange",
+                                                                                                            "token",
+                                                                                                            "lotsize", 
+                                                                                                            "symbol",
+                                                                                                            "tradingsymbol",
+                                                                                                            "expiry",
+                                                                                                            "instrument",
+                                                                                                            "optiontype",
+                                                                                                            "strikeprice",
+                                                                                                            "strike"
+                                                                                                            ]
+                                                                                                        ).collect()
         return df
     
     def get_expiry(
@@ -397,4 +365,23 @@ class FlattradeBFO:
             return strikediff            
         except (IndexError, Exception) as e:
             logging.debug("Error Fetching Strikediff :: {}".format(e))
+    
+    def get_lotsize(
+                    self,
+                    symbol: str= None,
+                    )-> float:
+        try:
+            df = self.load_master()
+
+            lotsize = df.lazy().select(
+                                        ["lotsize", "symbol"]    
+                                    ).filter(
+                                        pl.col("symbol") == symbol
+                                    ).select(
+                                        "lotsize"
+                                    ).collect().item(0, 0)
+            
+            return lotsize
+        except (IndexError, Exception) as e:
+            logging.debug("Error Fetching Lotsize :: {}".format(e))
 
